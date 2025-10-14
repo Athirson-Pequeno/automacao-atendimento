@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import requests
 
 import streamlit.components.v1 as components
 
@@ -54,7 +55,6 @@ st.title("Relatório de Medidores com Dias OFF")
 uploaded_file = st.file_uploader("Selecione o arquivo Excel (.xlsx)", type=["xlsx"])
 
 #Verifica se o arquivo foi enviado
-
 if uploaded_file is not None:
     try:
         #Lê o arquivo enviado e seleciona a aba dados
@@ -68,7 +68,6 @@ if uploaded_file is not None:
         dados_filtrados = df[df['DIAS OFF.'] > 0]
 
         st.success(f"{len(dados_filtrados)} registros encontrados com 'DIAS OFF.' > 0")
-
 
         #Configurar filtrosx
         #Filtro por Plataforma
@@ -90,6 +89,20 @@ if uploaded_file is not None:
 
         # Estatísticas extras
         st.subheader("Resumo Geral")
+
+        headers = {'Access-token': ''}
+        response = requests.get('', headers=headers)
+
+        data = response.json()
+
+        # A lista principal está dentro de "data"
+        dados = data["data"]
+
+        # Usamos json_normalize para achatar as chaves "sensor" e "user"
+        df = pd.json_normalize(dados, sep='_')
+
+        # Exporta para Excel
+        df.to_excel("../data/dados_sensores.xlsx", index=False)
 
         col1, col2, col3 = st.columns(3)
         col1.metric("Total de Registros", len(dados_filtrados))
