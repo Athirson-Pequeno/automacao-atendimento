@@ -1,20 +1,22 @@
-import os
-import requests
 import json
-import pandas as pd
+import os
 from datetime import datetime, timezone
+import pandas as pd
+import requests
 from dotenv import load_dotenv
 
 # --- Configurações ---
 DIAS_LIMITES = 2
 LIMITE_ATRASO_MS = DIAS_LIMITES * 24 * 60 * 60 * 1000  # 2 dias
 AGORA_MS = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # --- Carrega variáveis de ambiente ---
-load_dotenv("../.env")
+load_dotenv(".env")
 
 # Lê a variável do .env e converte JSON → lista Python
 LISTA_REQUISICOES = json.loads(os.getenv("LISTA_REQUISICOES"))
+
 
 # --- Função para buscar sensores atrasados ---
 def buscar_atrasados(url, token, nome_fonte):
@@ -58,6 +60,7 @@ def buscar_atrasados(url, token, nome_fonte):
     except Exception as e:
         return []
 
+
 def gerarTabelas():
     # --- Executa todas as requisições ---
     todos = []
@@ -96,6 +99,11 @@ def gerarTabelas():
         })
 
     df = pd.DataFrame(linhas)
-    df.to_excel("../data/sensores_atrasados.xlsx", index=False, engine='openpyxl')
+
+    # "../data/sensores_atrasados.xlsx"
+    PASTA_TABELA = os.path.join('database', 'tabelas')
+    os.makedirs(PASTA_TABELA, exist_ok=True)
+
+    df.to_excel(os.path.join(PASTA_TABELA, os.path.basename('sensores_atrasados.xlsx')), index=False, engine='openpyxl')
 
     return True

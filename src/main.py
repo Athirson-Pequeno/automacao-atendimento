@@ -1,8 +1,15 @@
+import os
 import pandas as pd
 import streamlit as st
 from utils.mensagens import gerarMensagem
 from utils.requisicoes import gerarTabelas
 from utils.controlar_banco_de_dados import salvarTabela
+
+# Caminho absoluto até a raiz do projeto
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DATABASE_DIR = os.path.join(BASE_DIR, "database")
+TABELAS_DIR = os.path.join(DATABASE_DIR, "tabelas")
+RELATORIOS_DIR = os.path.join(BASE_DIR, "relatorios")
 
 #Configurar página do streamlit
 st.set_page_config(page_title="Relatório de Medidores", layout="wide")
@@ -19,13 +26,14 @@ if st.button("🔄 Gerar Tabelas de Requisições"):
         try:
             if gerarTabelas():  # <- chama sua função
                 st.success("Tabelas geradas e salvas com sucesso!")
-                uploaded_file = '../data/sensores_atrasados.xlsx'
-                salvarTabela(uploaded_file)
+                uploaded_file = os.path.join(TABELAS_DIR,'sensores_atrasados.xlsx')
+                #uploaded_file = 'data/sensores_atrasados.xlsx'
         except Exception as e:
             st.error(f"Erro ao gerar tabelas: {e}")
 
 #Verifica se o arquivo foi enviado
 if uploaded_file is not None:
+    salvarTabela(uploaded_file)
     try:
         #Lê o arquivo enviado e seleciona a aba dados
         df = pd.read_excel(uploaded_file, sheet_name="Sheet1")
