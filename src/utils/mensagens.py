@@ -5,11 +5,11 @@ def gerarMensagem(subgrupo: pd.DataFrame):
 
     # Converte DataÚltimaLeitura com tratamento de erro
     ultima_info = []
-    for val in subgrupo["DataÚltimaLeitura"]:
+    for date in subgrupo["DataÚltimaLeitura"]:
         try:
             # Remove espaços extras
-            val = str(val).strip()
-            data = pd.to_datetime(val, dayfirst=True, errors="raise")
+            date = str(date).strip()
+            data = pd.to_datetime(date, dayfirst=True, errors="raise")
             ultima_info.append(data.strftime("%d/%m/%Y"))
         except Exception:
             ultima_info.append("data não informada")  # Nunca falha na exibição
@@ -21,7 +21,7 @@ def gerarMensagem(subgrupo: pd.DataFrame):
 
     lista_medidores = "".join(partes)
 
-    medidores_com_erro = (
+    mensagem_de_quantidade = (
         "Identificamos que os medidores a seguir não estão enviando dados de consumo."
         if len(partes) > 1 else
         "Identificamos que o medidor a seguir não está enviando dados de consumo."
@@ -30,7 +30,7 @@ def gerarMensagem(subgrupo: pd.DataFrame):
     mensagem = f"""
 Olá, tudo bem?
 
-{medidores_com_erro}
+{mensagem_de_quantidade}
 
 {lista_medidores}
 Gostaríamos de verificar junto a você se houve alguma intervenção recente no local (como manutenção elétrica, desligamento de equipamentos ou troca de rede).  

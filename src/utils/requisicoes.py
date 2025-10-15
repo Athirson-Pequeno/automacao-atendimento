@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # --- Configurações ---
-LIMITE_ATRASO_MS = 3 * 24 * 60 * 60 * 1000  # 3 dias
+DIAS_LIMITES = 2
+LIMITE_ATRASO_MS = DIAS_LIMITES * 24 * 60 * 60 * 1000  # 2 dias
 AGORA_MS = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
 
 # --- Carrega variáveis de ambiente ---
@@ -18,18 +19,14 @@ LISTA_REQUISICOES = json.loads(os.getenv("LISTA_REQUISICOES"))
 # --- Função para buscar sensores atrasados ---
 def buscar_atrasados(url, token, nome_fonte):
     try:
-        print(f"Buscando dados de {nome_fonte}...")
-
         response = requests.get(url, headers={"Access-Token": token})
         if response.status_code != 200:
-            print(f"❌ Erro {response.status_code} em {nome_fonte}: {response.text}")
             return []
 
         data = response.json()
 
         # Garante que o formato contém 'data'
         if "data" not in data:
-            print(f"⚠️ Estrutura inesperada em {nome_fonte}: chaves = {list(data.keys())}")
             return []
 
         sensores = data["data"]
@@ -56,13 +53,10 @@ def buscar_atrasados(url, token, nome_fonte):
             if ts and ts <= AGORA_MS - LIMITE_ATRASO_MS:
                 atrasados.append({**item, "fonte": nome_fonte})
 
-        print(f"✅ {len(atrasados)} sensores atrasados encontrados em {nome_fonte}")
         return atrasados
 
     except Exception as e:
-        print(f"⚠️ Erro ao processar {nome_fonte}: {e}")
         return []
-
 
 def gerarTabelas():
     # --- Executa todas as requisições ---
@@ -92,7 +86,7 @@ def gerarTabelas():
 
         linhas.append({
             "DataAtual": datetime.now().strftime("%d/%m/%Y"),
-            "Nome+Descrição": f"{nome} {descricao}",
+            "Nome+Descrição": f"{nome}{descricao}",
             "Nome": nome,
             "Email": email,
             "DescriçãoSensor": descricao,

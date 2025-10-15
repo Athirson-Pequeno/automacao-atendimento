@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from utils.mensagens import gerarMensagem
 from utils.requisicoes import gerarTabelas
+from utils.controlar_banco_de_dados import salvarTabela
 
 #Configurar página do streamlit
 st.set_page_config(page_title="Relatório de Medidores", layout="wide")
@@ -17,10 +18,11 @@ if st.button("🔄 Gerar Tabelas de Requisições"):
     with st.spinner("Gerando tabelas e atualizando dados..."):
         try:
             if gerarTabelas():  # <- chama sua função
-                st.success("✅ Tabelas geradas e salvas com sucesso!")
+                st.success("Tabelas geradas e salvas com sucesso!")
                 uploaded_file = '../data/sensores_atrasados.xlsx'
+                salvarTabela(uploaded_file)
         except Exception as e:
-            st.error(f"❌ Erro ao gerar tabelas: {e}")
+            st.error(f"Erro ao gerar tabelas: {e}")
 
 #Verifica se o arquivo foi enviado
 if uploaded_file is not None:
@@ -61,10 +63,11 @@ if uploaded_file is not None:
 
         # Estatísticas extras
         st.subheader("Resumo Geral")
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total de Registros", len(dados_filtrados))
         col2.metric("Usuários com problemas", dados_filtrados['Email'].nunique())
-        col3.metric("Maior número de dias OFF", int(dados_filtrados['Dias off.'].max()))
+        col3.metric("Sensores com problemas", dados_filtrados['DescriçãoSensor'].nunique())
+        col4.metric("Maior número de dias OFF", int(dados_filtrados['Dias off.'].max()))
 
         with st.expander(f"Tabela de medidores sem registro"):
             st.dataframe(dados_filtrados, use_container_width=True)
@@ -82,16 +85,15 @@ if uploaded_file is not None:
                 subgrupos = grupo_cliente.groupby("Plataforma")
 
                 for plataforma, subgrupo in subgrupos:
-                    st.markdown(f"### 🌐 Plataforma: {plataforma} ({len(subgrupo)} registro(s))")
+                    st.markdown(f"### 🌐 Plataforma: {plataforma} - {len(subgrupo)} registro(s)")
                     st.dataframe(subgrupo, use_container_width=True)
 
                     # Exibe a mensagem
                     st.code(gerarMensagem(subgrupo), language="markdown")
 
-
     except Exception as e:
         st.error(f"Erro ao processar planilha: {e}")
 else:
-    st.info("📥 Faça o upload do arquivo Excel para visualizar os dados.")
+    st.info("Faça o upload do arquivo Excel para visualizar os dados.")
 
 
