@@ -1,0 +1,35 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+
+# Arquivos de ambiente
+.env
+*.env
+
+# Ambientes virtuais
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Arquivos do VS Code e PyCharm
+.vscode/
+.idea/
+shelf/
+workspace.xml
+
+# Arquivos do sistema
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Arquivos temporários
+*.tmp
+*.bak
+.DS_Store
+
+# Cache do Streamlit
+.streamlit/
