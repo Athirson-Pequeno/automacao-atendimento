@@ -15,18 +15,21 @@ def gerarMensagem(subgrupo: pd.DataFrame):
             ultima_info.append("data não informada")  # Nunca falha na exibição
 
     partes = []
+    # Gera a lista de sensores sem dados
     for i, medidor in enumerate(nomes_medidores):
         data = ultima_info[i]
         partes.append(f"    • {medidor} desde {data}\n")
 
     lista_medidores = "".join(partes)
 
+    #Muda a mensagem caso a quantidade de sensores seja maior que um
     mensagem_de_quantidade = (
         "Identificamos que os medidores a seguir não estão enviando dados de consumo."
         if len(partes) > 1 else
         "Identificamos que o medidor a seguir não está enviando dados de consumo."
     )
 
+    #Gera a mensagem final pra o cliente
     mensagem = f"""
 Olá, tudo bem?
 

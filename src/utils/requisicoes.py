@@ -6,17 +6,25 @@ import requests
 from dotenv import load_dotenv
 
 # --- Configurações ---
-DIAS_LIMITES = 2
-LIMITE_ATRASO_MS = DIAS_LIMITES * 24 * 60 * 60 * 1000  # 2 dias
+DIAS_LIMITES = 0
+LIMITE_ATRASO_MS = DIAS_LIMITES * 24 * 60 * 60 * 1000  # 0 dias
 AGORA_MS = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Caminho absoluto até a raiz do projeto
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DATABASE_DIR = os.path.join(BASE_DIR, "database")
+TABELAS_DIR = os.path.join(DATABASE_DIR, "tabelas")
+RELATORIOS_DIR = os.path.join(BASE_DIR, "relatorios")
+
+os.makedirs(DATABASE_DIR, exist_ok=True)
+os.makedirs(TABELAS_DIR, exist_ok=True)
+os.makedirs(RELATORIOS_DIR, exist_ok=True)
 
 # --- Carrega variáveis de ambiente ---
 load_dotenv(".env")
 
 # Lê a variável do .env e converte JSON → lista Python
 LISTA_REQUISICOES = json.loads(os.getenv("LISTA_REQUISICOES"))
-
 
 # --- Função para buscar sensores atrasados ---
 def buscar_atrasados(url, token, nome_fonte):
@@ -51,9 +59,7 @@ def buscar_atrasados(url, token, nome_fonte):
         # Filtra atrasados
         atrasados = []
         for item in sensores:
-            ts = item.get("lastMeasurementTimestamp")
-            if ts and ts <= AGORA_MS - LIMITE_ATRASO_MS:
-                atrasados.append({**item, "fonte": nome_fonte})
+            atrasados.append({**item, "fonte": nome_fonte})
 
         return atrasados
 
@@ -83,9 +89,9 @@ def gerarTabelas():
         if ultima_leitura:
             data_leitura = datetime.fromtimestamp(ultima_leitura / 1000)
             dias_off = (datetime.now() - data_leitura).days
+            data_ultima_leitura_str = data_leitura.strftime("%d/%m/%Y")
         else:
-            data_leitura = ""
-            dias_off = 0
+            continue
 
         linhas.append({
             "DataAtual": datetime.now().strftime("%d/%m/%Y"),
@@ -93,17 +99,15 @@ def gerarTabelas():
             "Nome": nome,
             "Email": email,
             "DescriçãoSensor": descricao,
-            "DataÚltimaLeitura": data_leitura.strftime("%d/%m/%Y"),
+            "DataÚltimaLeitura": data_ultima_leitura_str,
             "Plataforma": item.get("fonte"),
             "Dias off.": dias_off
         })
 
     df = pd.DataFrame(linhas)
 
-    # "../data/sensores_atrasados.xlsx"
-    PASTA_TABELA = os.path.join('database', 'tabelas')
-    os.makedirs(PASTA_TABELA, exist_ok=True)
-
-    df.to_excel(os.path.join(PASTA_TABELA, os.path.basename('sensores_atrasados.xlsx')), index=False, engine='openpyxl')
+    #Salva a planilha de sensores atrasados na pasta tabelas
+    local_tabela = os.path.join(os.path.join(TABELAS_DIR), os.path.basename('sensores_atrasados.xlsx'))
+    df.to_excel(local_tabela, index=False, engine='openpyxl')
 
     return True
