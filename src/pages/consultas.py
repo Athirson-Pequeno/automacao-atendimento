@@ -3,6 +3,9 @@ import sqlite3
 
 import pandas as pd
 import streamlit as st
+from utils.ui import aplicar_estilo_sidebar
+
+aplicar_estilo_sidebar()
 
 # Caminho absoluto até a raiz do projeto
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

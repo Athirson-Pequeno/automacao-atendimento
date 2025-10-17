@@ -6,6 +6,9 @@ import streamlit as st
 from utils.controlar_banco_de_dados import salvarTabela
 from utils.mensagens import gerarMensagem
 from utils.requisicoes import gerarTabelas
+from utils.ui import aplicar_estilo_sidebar
+
+aplicar_estilo_sidebar()
 
 # Caminho absoluto até a raiz do projeto
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__)))
