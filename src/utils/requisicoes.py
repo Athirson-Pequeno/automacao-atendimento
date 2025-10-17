@@ -88,7 +88,7 @@ def gerarTabelas():
 
         if ultima_leitura:
             data_leitura = datetime.fromtimestamp(ultima_leitura / 1000)
-            dias_off = (datetime.now() - data_leitura).days
+            dias_off = (datetime.now().date() - data_leitura.date()).days
             data_ultima_leitura_str = data_leitura.strftime("%d/%m/%Y")
         else:
             continue
