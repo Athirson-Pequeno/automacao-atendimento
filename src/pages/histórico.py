@@ -109,6 +109,10 @@ tags_filtradas = st.sidebar.multiselect("Filtrar por Tag:", df_tabela["Tag"].uni
 if tags_filtradas:
     df_tabela = df_tabela[df_tabela["Tag"].isin(tags_filtradas)]
 
+filtro_por_nome = st.sidebar.multiselect("Filtrar por Nome:", df_tabela["Nome"].unique())
+if filtro_por_nome:
+    df_tabela = df_tabela[df_tabela["Nome"].isin(filtro_por_nome)]
+
 st.title("📊 Histórico de Tags")
 df_styled = df_tabela.style.applymap(colorir_celulas, subset=datas)
 

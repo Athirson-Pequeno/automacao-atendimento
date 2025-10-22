@@ -21,7 +21,10 @@ os.makedirs(TABELAS_DIR, exist_ok=True)
 os.makedirs(RELATORIOS_DIR, exist_ok=True)
 
 # --- Carrega variáveis de ambiente ---
-load_dotenv(".env")
+from dotenv import load_dotenv
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Lê a variável do .env e converte JSON → lista Python
 LISTA_REQUISICOES = json.loads(os.getenv("LISTA_REQUISICOES"))
