@@ -4,9 +4,10 @@ import pandas as pd
 import streamlit as st
 
 from utils.controlar_banco_de_dados import salvarTabela
-from utils.mensagens import gerarMensagem
+from utils.mensagens import gerarMensagem, gerarMensagemHTML_bonito
 from utils.requisicoes import gerarTabelas
 from utils.ui import aplicar_estilo_sidebar
+from utils.enviar_emails import send_email
 
 aplicar_estilo_sidebar()
 
@@ -119,6 +120,20 @@ if uploaded_file is not None:
 
                     # Exibe a mensagem
                     st.code(gerarMensagem(subgrupo), language="markdown")
+
+                    # Botão para enviar e-mail
+                    email_destinatario = subgrupo['Email'].iloc[0]  # pega o email do cliente
+                    if st.button(f"✉️ Enviar e-mail para {nome} ({email_destinatario})"):
+                        with st.spinner(f"Enviando e-mail para {email_destinatario}..."):
+                            try:
+                                resultado = send_email(
+                                    to_address=email_destinatario,
+                                    subject="Atualização de Medidores Offline",
+                                    content=gerarMensagemHTML_bonito(subgrupo)
+                                )
+                                st.success(f"E-mail enviado com sucesso para {email_destinatario}!")
+                            except Exception as e:
+                                st.error(f"Erro ao enviar e-mail: {e}")
 
     except Exception as e:
         st.error(f"Erro ao processar planilha: {e}")
