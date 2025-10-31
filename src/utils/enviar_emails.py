@@ -48,7 +48,7 @@ def send_email(to_address, subject, content):
         })
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
-    if "authFail" in result.stdout:
+    if "authFail" in result.stdout or "INVALID_OAUTHTOKEN" in result.stdout:
         print("Token expirado! Renovando...")
         refresh_access_token()
         send_email(to_address, subject, content)  # tenta de novo
