@@ -50,18 +50,19 @@ parametros = [datetime.today().strftime("%Y-%m-%d")]
 
 # Buscar lista de tags
 df_tags = pd.read_sql_query("""
-                                    SELECT DISTINCT descricao_sensor, nome, data_registro, ultima_leitura, plataforma, status
+                                    SELECT DISTINCT descricao_sensor, nome, data_registro, ultima_leitura, plataforma, tipo_medidor, status
                                     FROM sensores_atrasados 
                                     WHERE data_registro = ?
                                 """, conn, params=parametros)
 
 nomes = df_tags['nome'].tolist()
 plataformas = df_tags['plataforma'].tolist()
+tipo_medidor = df_tags['tipo_medidor'].tolist()
 
 # Montar tabela
 tabela = []
 for i, tag in enumerate(df_tags['descricao_sensor']):
-    linha = {"Tag": tag, "Nome": nomes[i], "Plataforma": plataformas[i]}
+    linha = {"Tag": tag, "Nome": nomes[i], "Plataforma": plataformas[i], "Tipo medidor": tipo_medidor[i]}
 
     # Buscar a última leitura dessa tag no banco
     query_ultima = """
@@ -153,8 +154,8 @@ with aba2:
         .mark_text(
             align="center",
             baseline="middle",
-            dy=-10,  # ajuste vertical (negativo = acima, positivo = abaixo)
-            fontSize=12,
+            dy=-12,  # ajuste vertical (negativo = acima, positivo = abaixo)
+            fontSize=14,
             fontWeight="bold",
             color="black"
         )

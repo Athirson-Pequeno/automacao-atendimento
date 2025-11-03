@@ -31,7 +31,8 @@ def salvarTabela(arquivo):
         "DescriçãoSensor": "descricao_sensor",
         "DataÚltimaLeitura": "ultima_leitura",
         "Plataforma": "plataforma",
-        "Dias off.": "dias_off"
+        "Dias off.": "dias_off",
+        "TipoMedidor": "tipo_medidor"
     }, inplace=True)
 
     # --- Conectar SQLite ---
@@ -49,6 +50,7 @@ def salvarTabela(arquivo):
         ultima_leitura DATE,
         plataforma TEXT,
         status TEXT,
+        tipo_medidor TEXT,
         UNIQUE(data_registro, nome, descricao_sensor)
     )
     """)
@@ -65,8 +67,8 @@ def salvarTabela(arquivo):
 
             cursor.execute("""
             INSERT INTO sensores_atrasados (
-                data_registro, nome, descricao_sensor, email, ultima_leitura, plataforma, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                data_registro, nome, descricao_sensor, email, ultima_leitura, plataforma, tipo_medidor, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 row["data_registro"],
                 row["nome"],
@@ -74,6 +76,7 @@ def salvarTabela(arquivo):
                 row["email"],
                 row.get("ultima_leitura", None),
                 row.get("plataforma", ""),
+                row["tipo_medidor"],
                 status
             ))
         except sqlite3.IntegrityError:

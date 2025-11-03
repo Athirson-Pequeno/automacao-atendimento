@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime, timezone
+
 import pandas as pd
 import requests
 from dotenv import load_dotenv
@@ -27,6 +28,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Lê a variável do .env e converte JSON → lista Python
 LISTA_REQUISICOES = json.loads(os.getenv("LISTA_REQUISICOES"))
+
 
 # --- Função para buscar sensores atrasados ---
 def buscar_atrasados(url, token, nome_fonte):
@@ -61,7 +63,17 @@ def buscar_atrasados(url, token, nome_fonte):
         # Filtra atrasados
         atrasados = []
         for item in sensores:
-            atrasados.append({**item, "fonte": nome_fonte})
+            if nome_fonte in ["LiteMe", "LiteMe - UFCG"]:
+                atrasados.append({**item, "fonte": nome_fonte, "TipoMedidor": "ENERGIA"})
+            elif nome_fonte == "Lyum":
+                if "utility" in item["sensor"]:
+                    tipo = item["sensor"]["utility"]
+                    if tipo == "WATER":
+                        atrasados.append({**item, "fonte": nome_fonte, "TipoMedidor": "ÁGUA"})
+                    elif tipo == "ELECTRIC":
+                        atrasados.append({**item, "fonte": nome_fonte, "TipoMedidor": "ENERGIA"})
+                    else:
+                        atrasados.append({**item, "fonte": nome_fonte, "TipoMedidor": tipo})
 
         return atrasados
 
@@ -87,6 +99,7 @@ def gerarTabelas():
         email = user.get("email", "")
         descricao = sensor.get("description", "")
         ultima_leitura = item.get("lastMeasurementTimestamp")
+        tipo_medidor = item.get("TipoMedidor")
 
         if ultima_leitura:
             data_leitura = datetime.fromtimestamp(ultima_leitura / 1000)
@@ -103,12 +116,13 @@ def gerarTabelas():
             "DescriçãoSensor": descricao,
             "DataÚltimaLeitura": data_ultima_leitura_str,
             "Plataforma": item.get("fonte"),
+            "TipoMedidor": tipo_medidor,
             "Dias off.": dias_off
         })
 
     df = pd.DataFrame(linhas)
 
-    #Salva a planilha de sensores atrasados na pasta tabelas
+    # Salva a planilha de sensores atrasados na pasta tabelas
     local_tabela = os.path.join(os.path.join(TABELAS_DIR), os.path.basename('sensores_atrasados.xlsx'))
     df.to_excel(local_tabela, index=False, engine='openpyxl')
 
