@@ -1,6 +1,7 @@
 import os
-import pandas as pd
 import sqlite3
+
+import pandas as pd
 
 # Caminho absoluto até a raiz do projeto
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -12,8 +13,8 @@ os.makedirs(DATABASE_DIR, exist_ok=True)
 os.makedirs(TABELAS_DIR, exist_ok=True)
 os.makedirs(RELATORIOS_DIR, exist_ok=True)
 
-def salvarTabela(arquivo):
 
+def salvarTabela(arquivo):
     # Nome do banco dentro da pasta src/database
     banco_sqlite = os.path.join(DATABASE_DIR, "sensores_atrasados.db")
 
@@ -29,7 +30,8 @@ def salvarTabela(arquivo):
         "Email": "email",
         "DescriçãoSensor": "descricao_sensor",
         "DataÚltimaLeitura": "ultima_leitura",
-        "Plataforma": "plataforma"
+        "Plataforma": "plataforma",
+        "Dias off.": "dias_off"
     }, inplace=True)
 
     # --- Conectar SQLite ---
@@ -46,6 +48,7 @@ def salvarTabela(arquivo):
         descricao_sensor TEXT NOT NULL,
         ultima_leitura DATE,
         plataforma TEXT,
+        status TEXT,
         UNIQUE(data_registro, nome, descricao_sensor)
     )
     """)
@@ -54,17 +57,24 @@ def salvarTabela(arquivo):
     # --- Inserir dados novos evitando duplicados ---
     for _, row in df.iterrows():
         try:
+
+            if row["dias_off"] > 0:
+                status = "OFF"
+            else:
+                status = "ON"
+
             cursor.execute("""
             INSERT INTO sensores_atrasados (
-                data_registro, nome, descricao_sensor, email, ultima_leitura, plataforma
-            ) VALUES (?, ?, ?, ?, ?, ?)
+                data_registro, nome, descricao_sensor, email, ultima_leitura, plataforma, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
                 row["data_registro"],
                 row["nome"],
                 row["descricao_sensor"],
                 row["email"],
                 row.get("ultima_leitura", None),
-                row.get("plataforma", "")
+                row.get("plataforma", ""),
+                status
             ))
         except sqlite3.IntegrityError:
             # Ignora duplicados

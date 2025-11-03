@@ -1,8 +1,11 @@
 import os
 import sqlite3
+from datetime import datetime, timedelta
+
+import altair as alt
 import pandas as pd
 import streamlit as st
-from datetime import datetime, timedelta
+
 from utils.ui import aplicar_estilo_sidebar
 
 aplicar_estilo_sidebar()
@@ -43,13 +46,13 @@ if data_inicio > data_fim:
 delta = (data_fim - data_inicio).days + 1
 datas = [(data_inicio + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(delta)]
 
-parametros = [datetime.today().strftime("%Y-%m-%d"), (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")]
+parametros = [datetime.today().strftime("%Y-%m-%d")]
 
 # Buscar lista de tags
 df_tags = pd.read_sql_query("""
-                                    SELECT DISTINCT descricao_sensor, nome, data_registro, ultima_leitura, plataforma
+                                    SELECT DISTINCT descricao_sensor, nome, data_registro, ultima_leitura, plataforma, status
                                     FROM sensores_atrasados 
-                                    WHERE data_registro = ? and ultima_leitura < ?
+                                    WHERE data_registro = ?
                                 """, conn, params=parametros)
 
 nomes = df_tags['nome'].tolist()
@@ -114,7 +117,7 @@ if filtro_por_nome:
     df_tabela = df_tabela[df_tabela["Nome"].isin(filtro_por_nome)]
 
 st.title("📊 Histórico de Tags")
-df_styled = df_tabela.style.applymap(colorir_celulas, subset=datas)
+df_styled = df_tabela.style.map(colorir_celulas, subset=datas)
 
 aba1, aba2 = st.tabs(["📋 Tabela", "📈 Gráfico"])
 
@@ -122,6 +125,58 @@ with aba1:
     st.dataframe(df_styled, width='stretch', hide_index=True)
 
 with aba2:
-    st.line_chart(df_tabela[datas].apply(lambda col: (col == "OFF").sum()))
+    df_counts = pd.DataFrame({
+        "Data": datas,
+        "OFF": df_tabela[datas].apply(lambda col: (col == "OFF").sum()),
+        "ON": df_tabela[datas].apply(lambda col: (col == "ON").sum())
+    }).melt("Data", var_name="Status", value_name="Quantidade")
+
+    # --- Gráfico base (linhas + pontos) ---
+    base = (
+        alt.Chart(df_counts)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X("Data:N", title="Data"),
+            y=alt.Y("Quantidade:Q", title="Quantidade"),
+            color=alt.Color(
+                "Status:N",
+                scale=alt.Scale(domain=["ON", "OFF"], range=["#10B981", "#EF4444"]),
+                legend=alt.Legend(title="Status")
+            ),
+            tooltip=["Data", "Status", "Quantidade"]
+        )
+    )
+
+    # --- Texto dentro das bolinhas ---
+    text = (
+        alt.Chart(df_counts)
+        .mark_text(
+            align="center",
+            baseline="middle",
+            dy=-10,  # ajuste vertical (negativo = acima, positivo = abaixo)
+            fontSize=12,
+            fontWeight="bold",
+            color="black"
+        )
+        .encode(
+            x="Data:N",
+            y="Quantidade:Q",
+            text="Quantidade:Q",
+            color=alt.Color("Status:N", scale=alt.Scale(domain=["ON", "OFF"], range=["#10B981", "#EF4444"]))
+        )
+    )
+
+    # --- Combina os dois ---
+    chart = (base + text).properties(
+        title="Status dos Equipamentos por Dia",
+        width=700,
+        height=400
+    ).configure_title(
+        fontSize=20,
+        fontWeight="bold",
+        anchor="start"
+    )
+
+    st.altair_chart(chart, use_container_width=True)
 
 conn.close()
