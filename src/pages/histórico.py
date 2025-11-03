@@ -119,7 +119,7 @@ df_styled = df_tabela.style.applymap(colorir_celulas, subset=datas)
 aba1, aba2 = st.tabs(["📋 Tabela", "📈 Gráfico"])
 
 with aba1:
-    st.dataframe(df_styled, use_container_width=True, hide_index=True)
+    st.dataframe(df_styled, width='stretch', hide_index=True)
 
 with aba2:
     st.line_chart(df_tabela[datas].apply(lambda col: (col == "OFF").sum()))

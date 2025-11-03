@@ -64,7 +64,7 @@ else:
     # Exibir resultados
     if not df.empty:
         st.success(f"{len(df)} registros encontrados")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width='stretch')
 
         # Exportar
         if st.download_button("⬇️ Baixar como Excel", df.to_csv(index=False).encode('utf-8'), "consultas_sensores.csv"):

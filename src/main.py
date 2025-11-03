@@ -100,7 +100,7 @@ if uploaded_file is not None:
 
         #Exibe todos os medidores sem registro
         st.subheader("Medidores sem registros")
-        st.dataframe(dados_filtrados, use_container_width=True)
+        st.dataframe(dados_filtrados, width='stretch')
 
         st.divider()
 
@@ -116,7 +116,7 @@ if uploaded_file is not None:
 
                 for plataforma, subgrupo in subgrupos:
                     st.markdown(f"### 🌐 Plataforma: {plataforma} - {len(subgrupo)} registro(s)")
-                    st.dataframe(subgrupo, use_container_width=True)
+                    st.dataframe(subgrupo, width='stretch')
 
                     # Exibe a mensagem
                     st.code(gerarMensagem(subgrupo), language="markdown")
