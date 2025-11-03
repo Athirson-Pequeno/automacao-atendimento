@@ -117,6 +117,10 @@ filtro_por_nome = st.sidebar.multiselect("Filtrar por Nome:", df_tabela["Nome"].
 if filtro_por_nome:
     df_tabela = df_tabela[df_tabela["Nome"].isin(filtro_por_nome)]
 
+filtro_por_tipo = st.sidebar.multiselect("Filtrar por Tipo:", df_tabela["Tipo medidor"].unique())
+if filtro_por_tipo:
+    df_tabela = df_tabela[df_tabela["Tipo medidor"].isin(filtro_por_tipo)]
+
 st.title("📊 Histórico de Tags")
 df_styled = df_tabela.style.map(colorir_celulas, subset=datas)
 
