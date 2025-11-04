@@ -74,6 +74,8 @@ def buscar_atrasados(url, token, nome_fonte):
                         atrasados.append({**item, "fonte": nome_fonte, "TipoMedidor": "ENERGIA"})
                     else:
                         atrasados.append({**item, "fonte": nome_fonte, "TipoMedidor": tipo})
+                else:
+                    atrasados.append({**item, "fonte": nome_fonte, "TipoMedidor": "NÃO ESPECÍFICADO"})
 
         return atrasados
 

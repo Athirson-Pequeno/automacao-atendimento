@@ -1,5 +1,4 @@
 import os
-import sqlite3
 from datetime import datetime, timedelta
 
 import altair as alt
@@ -23,11 +22,6 @@ DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
 
 engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
-
-DB_PATH = os.path.join(DATABASE_DIR, "sensores_atrasados.db")
-
-# Conectar no banco
-conn = sqlite3.connect(DB_PATH)
 
 st.set_page_config(page_title="Histórico de Medidores", layout="wide")
 
@@ -134,6 +128,10 @@ filtro_por_nome = st.sidebar.multiselect("Filtrar por Nome:", df_tabela["Nome"].
 if filtro_por_nome:
     df_tabela = df_tabela[df_tabela["Nome"].isin(filtro_por_nome)]
 
+filtro_por_plataforma = st.sidebar.multiselect("Filtrar por Plataforma:", df_tabela["Plataforma"].unique())
+if filtro_por_plataforma:
+    df_tabela = df_tabela[df_tabela["Plataforma"].isin(filtro_por_plataforma)]
+
 filtro_por_tipo = st.sidebar.multiselect("Filtrar por Tipo:", df_tabela["Tipo medidor"].unique())
 if filtro_por_tipo:
     df_tabela = df_tabela[df_tabela["Tipo medidor"].isin(filtro_por_tipo)]
@@ -224,5 +222,3 @@ with aba2:
     )
 
     st.altair_chart(chart, use_container_width=True)
-
-conn.close()

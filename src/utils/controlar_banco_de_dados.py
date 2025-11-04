@@ -46,7 +46,7 @@ def salvarTabela(arquivo):
 
     # --- Criar tabela se não existir ---
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS sensores_atrasados (
+        CREATE TABLE IF NOT EXISTS historico_sensores (
             id SERIAL PRIMARY KEY,
             data_registro DATE NOT NULL,
             nome TEXT NOT NULL,
@@ -65,7 +65,7 @@ def salvarTabela(arquivo):
     # --- Inserir dados novos evitando duplicados ---
     for _, row in df.iterrows():
         cursor.execute("""
-                INSERT INTO sensores_atrasados (
+                INSERT INTO historico_sensores (
                     data_registro, nome, descricao_sensor, email, ultima_leitura, plataforma, tipo_medidor, status
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (data_registro, nome, descricao_sensor) DO NOTHING
@@ -87,7 +87,7 @@ def salvarTabela(arquivo):
     mes = str(pd.Timestamp.today().month).zfill(2)
 
     engine = create_engine("postgresql+psycopg2://admin:asp36412@localhost:5432/atendimento_cliente")
-    df_mensal = pd.read_sql_query("SELECT * FROM sensores_atrasados ORDER BY data_registro ASC", engine)
+    df_mensal = pd.read_sql_query("SELECT * FROM historico_sensores ORDER BY data_registro ASC", engine)
 
     nome_relatorio = os.path.join(RELATORIOS_DIR, f"historico_{ano}_{mes}.xlsx")
     df_mensal.to_excel(nome_relatorio, index=False)
