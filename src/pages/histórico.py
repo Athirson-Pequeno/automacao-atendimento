@@ -138,6 +138,30 @@ filtro_por_tipo = st.sidebar.multiselect("Filtrar por Tipo:", df_tabela["Tipo me
 if filtro_por_tipo:
     df_tabela = df_tabela[df_tabela["Tipo medidor"].isin(filtro_por_tipo)]
 
+# ----------------- NOVOS FILTROS DE STATUS -----------------
+st.sidebar.markdown("---")
+colunas_datas = [col for col in df_tabela.columns if col in datas]
+
+aplicar_filtro_variacao = st.sidebar.checkbox("Ativar filtro por status")
+
+if aplicar_filtro_variacao:
+    opcao_status_todos = st.sidebar.selectbox(
+        "Mostrar sensores que estão:",
+        ["Todos com Variações", "Todos ON", "Todos OFF", "Todos —"]
+    )
+
+    colunas_datas = [col for col in df_tabela.columns if col in datas]
+
+    if opcao_status_todos == "Todos com Variações":
+        mascara_variacao = df_tabela[colunas_datas].apply(lambda linha: len(set(linha)) > 1, axis=1)
+        df_tabela = df_tabela[mascara_variacao]
+    elif opcao_status_todos == "Todos ON":
+        df_tabela = df_tabela[df_tabela[colunas_datas].apply(lambda l: set(l) == {"ON"}, axis=1)]
+    elif opcao_status_todos == "Todos OFF":
+        df_tabela = df_tabela[df_tabela[colunas_datas].apply(lambda l: set(l) == {"OFF"}, axis=1)]
+    elif opcao_status_todos == "Todos —":
+        df_tabela = df_tabela[df_tabela[colunas_datas].apply(lambda l: set(l) == {"—"}, axis=1)]
+
 st.title("📊 Histórico de Tags")
 df_styled = df_tabela.style.map(colorir_celulas, subset=datas)
 
