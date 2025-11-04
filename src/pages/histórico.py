@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import altair as alt
 import pandas as pd
 import streamlit as st
+from sqlalchemy import create_engine
 
 from utils.ui import aplicar_estilo_sidebar
 
@@ -14,6 +15,14 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATABASE_DIR = os.path.join(BASE_DIR, "database")
 TABELAS_DIR = os.path.join(DATABASE_DIR, "tabelas")
 RELATORIOS_DIR = os.path.join(BASE_DIR, "relatorios")
+
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+
+engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 
 DB_PATH = os.path.join(DATABASE_DIR, "sensores_atrasados.db")
 
@@ -46,49 +55,49 @@ if data_inicio > data_fim:
 delta = (data_fim - data_inicio).days + 1
 datas = [(data_inicio + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(delta)]
 
-parametros = [datetime.today().strftime("%Y-%m-%d")]
-
-# Buscar lista de tags
-df_tags = pd.read_sql_query("""
-                                    SELECT DISTINCT descricao_sensor, nome, data_registro, ultima_leitura, plataforma, tipo_medidor, status
-                                    FROM sensores_atrasados 
-                                    WHERE data_registro = ?
-                                """, conn, params=parametros)
-
-nomes = df_tags['nome'].tolist()
-plataformas = df_tags['plataforma'].tolist()
-tipo_medidor = df_tags['tipo_medidor'].tolist()
-
-# Montar tabela
+# --- Montar tabela ---
 tabela = []
-for i, tag in enumerate(df_tags['descricao_sensor']):
-    linha = {"Tag": tag, "Nome": nomes[i], "Plataforma": plataformas[i], "Tipo medidor": tipo_medidor[i]}
 
-    # Buscar a última leitura dessa tag no banco
-    query_ultima = """
-        SELECT MAX(ultima_leitura) AS ultima_leitura
-        FROM sensores_atrasados
-        WHERE descricao_sensor = ?
-    """
+# Buscar todos os registros dentro do intervalo selecionado
+query_dados = """
+    SELECT descricao_sensor, nome, plataforma, tipo_medidor, data_registro, status
+    FROM historico_sensores
+    WHERE data_registro BETWEEN %(inicio)s AND %(fim)s
+"""
+parametros_periodo = {
+    "inicio": data_inicio.strftime("%Y-%m-%d"),
+    "fim": data_fim.strftime("%Y-%m-%d")
+}
 
-    df_ultima = pd.read_sql_query(query_ultima, conn, params=[tag])
-    ultima_leitura = df_ultima.iloc[0]['ultima_leitura']
+df_dados = pd.read_sql_query(query_dados, engine, params=parametros_periodo)
 
-    if pd.isna(ultima_leitura):
-        # Nunca teve leitura
-        for data in datas:
-            linha[data] = "OFF"
-    else:
-        # Converter para datetime para comparar
-        ultima_leitura_dt = datetime.strptime(ultima_leitura, "%Y-%m-%d")
+# Garantir que as datas estão ordenadas
+df_dados['data_registro'] = pd.to_datetime(df_dados['data_registro'])
+df_dados = df_dados.sort_values(['descricao_sensor', 'data_registro'])
 
-        for data in datas:
-            data_dt = datetime.strptime(data, "%Y-%m-%d")
+# Obter listas de sensores únicos
+sensores_unicos = df_dados[['descricao_sensor', 'nome', 'plataforma', 'tipo_medidor']].drop_duplicates()
 
-            if data_dt <= ultima_leitura_dt:
-                linha[data] = "ON"
-            else:
-                linha[data] = "OFF"
+# Montar cada linha
+for _, sensor in sensores_unicos.iterrows():
+    tag = sensor['descricao_sensor']
+    nome = sensor['nome']
+    plataforma = sensor['plataforma']
+    tipo = sensor['tipo_medidor']
+
+    linha = {
+        "Tag": tag,
+        "Nome": nome,
+        "Plataforma": plataforma,
+        "Tipo medidor": tipo
+    }
+
+    # Filtrar dados desse sensor
+    df_sensor = df_dados[df_dados['descricao_sensor'] == tag]
+
+    for data in datas:
+        status_dia = df_sensor.loc[df_sensor['data_registro'] == data, 'status']
+        linha[data] = status_dia.iloc[0] if not status_dia.empty else "—"
 
     tabela.append(linha)
 
@@ -103,6 +112,14 @@ def colorir_celulas(valor):
 
 # Criar DataFrame final
 df_tabela = pd.DataFrame(tabela)
+
+# Remover as colunas de datas em que todos os sensores estão com "—"
+datas_validas = [data for data in datas if not (df_tabela[data] == "—").all()]
+df_tabela = df_tabela[["Tag", "Nome", "Plataforma", "Tipo medidor"] + datas_validas]
+
+# Atualizar a lista de datas para o gráfico
+datas = datas_validas
+
 config = {
     "Tag": st.column_config.Column(
         "Tag",

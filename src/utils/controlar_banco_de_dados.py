@@ -1,7 +1,8 @@
 import os
-import sqlite3
 
 import pandas as pd
+import psycopg2
+from sqlalchemy import create_engine
 
 # Caminho absoluto até a raiz do projeto
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -16,8 +17,6 @@ os.makedirs(RELATORIOS_DIR, exist_ok=True)
 
 def salvarTabela(arquivo):
     # Nome do banco dentro da pasta src/database
-    banco_sqlite = os.path.join(DATABASE_DIR, "sensores_atrasados.db")
-
     df = pd.read_excel(arquivo)
 
     # Converter a coluna de data para o formato padrão SQLite
@@ -35,67 +34,62 @@ def salvarTabela(arquivo):
         "TipoMedidor": "tipo_medidor"
     }, inplace=True)
 
-    # --- Conectar SQLite ---
-    conn = sqlite3.connect(banco_sqlite)
+    # --- Conexão com o PostgreSQL ---
+    conn = psycopg2.connect(
+        host="localhost",  # ou "postgres" se rodar dentro do Docker Compose
+        port="5432",
+        database="atendimento_cliente",
+        user="admin",
+        password="asp36412"
+    )
     cursor = conn.cursor()
 
     # --- Criar tabela se não existir ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS sensores_atrasados (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        data_registro DATE NOT NULL,
-        nome TEXT NOT NULL,
-        email TEXT NOT NULL,
-        descricao_sensor TEXT NOT NULL,
-        ultima_leitura DATE,
-        plataforma TEXT,
-        status TEXT,
-        tipo_medidor TEXT,
-        UNIQUE(data_registro, nome, descricao_sensor)
-    )
+            id SERIAL PRIMARY KEY,
+            data_registro DATE NOT NULL,
+            nome TEXT NOT NULL,
+            email TEXT NOT NULL,
+            descricao_sensor TEXT NOT NULL,
+            ultima_leitura DATE,
+            plataforma TEXT,
+            status TEXT,
+            tipo_medidor TEXT,
+            UNIQUE(data_registro, nome, descricao_sensor)
+        )
     """)
+
     conn.commit()
 
     # --- Inserir dados novos evitando duplicados ---
     for _, row in df.iterrows():
-        try:
-
-            if row["dias_off"] > 0:
-                status = "OFF"
-            else:
-                status = "ON"
-
-            cursor.execute("""
-            INSERT INTO sensores_atrasados (
-                data_registro, nome, descricao_sensor, email, ultima_leitura, plataforma, tipo_medidor, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        cursor.execute("""
+                INSERT INTO sensores_atrasados (
+                    data_registro, nome, descricao_sensor, email, ultima_leitura, plataforma, tipo_medidor, status
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (data_registro, nome, descricao_sensor) DO NOTHING
             """, (
-                row["data_registro"],
-                row["nome"],
-                row["descricao_sensor"],
-                row["email"],
-                row.get("ultima_leitura", None),
-                row.get("plataforma", ""),
-                row["tipo_medidor"],
-                status
-            ))
-        except sqlite3.IntegrityError:
-            # Ignora duplicados
-            pass
+            row["data_registro"],
+            row["nome"],
+            row["descricao_sensor"],
+            row["email"],
+            row.get("ultima_leitura", None),
+            row.get("plataforma", ""),
+            row["tipo_medidor"],
+            "OFF" if row["dias_off"] > 0 else "ON"
+        ))
 
     conn.commit()
 
-    # --- Gerar relatório mensal (ex: outubro/2025) ---
-    ano = "2025"
-    mes = "10"
-    query = f"""
-    SELECT * FROM sensores_atrasados
-    ORDER BY data_registro ASC
-    """
+    # Gerar relatório
+    ano = str(pd.Timestamp.today().year)
+    mes = str(pd.Timestamp.today().month).zfill(2)
 
-    # Salvar planilha original na pasta relatorios
-    df_mensal = pd.read_sql_query(query, conn)
-    nome_relatorio = os.path.join(RELATORIOS_DIR, os.path.basename(f"historico_{ano}_{mes}.xlsx"))
+    engine = create_engine("postgresql+psycopg2://admin:asp36412@localhost:5432/atendimento_cliente")
+    df_mensal = pd.read_sql_query("SELECT * FROM sensores_atrasados ORDER BY data_registro ASC", engine)
+
+    nome_relatorio = os.path.join(RELATORIOS_DIR, f"historico_{ano}_{mes}.xlsx")
     df_mensal.to_excel(nome_relatorio, index=False)
 
     conn.close()
