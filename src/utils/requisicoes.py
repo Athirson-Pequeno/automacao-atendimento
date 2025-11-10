@@ -102,6 +102,8 @@ def gerarTabelas():
         descricao = sensor.get("description", "")
         ultima_leitura = item.get("lastMeasurementTimestamp")
         tipo_medidor = item.get("TipoMedidor")
+        manutencao = str(sensor.get("maintenance", "indeterminado"))
+
 
         if ultima_leitura:
             data_leitura = datetime.fromtimestamp(ultima_leitura / 1000)
@@ -119,7 +121,8 @@ def gerarTabelas():
             "DataÚltimaLeitura": data_ultima_leitura_str,
             "Plataforma": item.get("fonte"),
             "TipoMedidor": tipo_medidor,
-            "Dias off.": dias_off
+            "Dias off.": dias_off,
+            "Manutencao": manutencao
         })
 
     df = pd.DataFrame(linhas)

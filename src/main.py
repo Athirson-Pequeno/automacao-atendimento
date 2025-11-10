@@ -67,7 +67,8 @@ if uploaded_file is not None:
             df = df.drop(columns=['Nome+Descrição'])
 
         # Filtra os dados a partir da coluna de dias offline
-        dados_filtrados = df[df['Dias off.'] >= 2]
+        df['Manutencao'] = df['Manutencao'].astype(str).str.strip().str.upper()
+        dados_filtrados = df[(df['Dias off.'] >= 2) & (df['Manutencao'] != 'FALSE')]
 
         #Informa a quantidade de registro encontrados
         st.success(f"{len(dados_filtrados)} registros encontrados com mais de 2 dias sem informações")
@@ -76,8 +77,11 @@ if uploaded_file is not None:
         # Filtro por Plataforma
         st.sidebar.header("Filtros")
         plataformas = sorted(df['Plataforma'].dropna().unique())
+        tipo_medidor = sorted(df['TipoMedidor'].dropna().unique())
         plataforma_selecionada = st.sidebar.multiselect(
             "Filtrar por plataforma:", plataformas, default=plataformas)
+        tipo_medidor_selecionado = st.sidebar.multiselect(
+            "Filtrar por tipo:", tipo_medidor, default=tipo_medidor)
 
         # Filtro por Data
         dias_min = st.sidebar.number_input("Qtd. dias iniciais", value=2, min_value=0, step=1)
@@ -86,8 +90,10 @@ if uploaded_file is not None:
         # Aplica filtros
         dados_filtrados = df[
             (df['Plataforma'].isin(plataforma_selecionada)) &
+            (df['TipoMedidor'].isin(tipo_medidor_selecionado)) &
             (df['Dias off.'].between(dias_min, dias_max)) &
-            (df['Dias off.'] > 0)]
+            (df['Dias off.'] > 0) &
+            (df['Manutencao'] != 'FALSE')]
 
         # Estatísticas extras
         st.subheader("Resumo Geral")
