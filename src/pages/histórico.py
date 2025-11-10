@@ -54,7 +54,7 @@ tabela = []
 
 # Buscar todos os registros dentro do intervalo selecionado
 query_dados = """
-    SELECT descricao_sensor, nome, plataforma, tipo_medidor, data_registro, status
+    SELECT descricao_sensor, nome, plataforma, tipo_medidor, data_registro, status, manutencao
     FROM historico_sensores
     WHERE data_registro BETWEEN %(inicio)s AND %(fim)s
 """
@@ -70,7 +70,7 @@ df_dados['data_registro'] = pd.to_datetime(df_dados['data_registro'])
 df_dados = df_dados.sort_values(['descricao_sensor', 'data_registro'])
 
 # Obter listas de sensores únicos
-sensores_unicos = df_dados[['descricao_sensor', 'nome', 'plataforma', 'tipo_medidor']].drop_duplicates()
+sensores_unicos = df_dados[['descricao_sensor', 'nome', 'plataforma', 'tipo_medidor', 'manutencao']].drop_duplicates()
 
 # Montar cada linha
 for _, sensor in sensores_unicos.iterrows():
@@ -78,12 +78,14 @@ for _, sensor in sensores_unicos.iterrows():
     nome = sensor['nome']
     plataforma = sensor['plataforma']
     tipo = sensor['tipo_medidor']
+    manutencao = sensor['manutencao']
 
     linha = {
         "Tag": tag,
         "Nome": nome,
         "Plataforma": plataforma,
-        "Tipo medidor": tipo
+        "Tipo medidor": tipo,
+        "Manutenção": manutencao
     }
 
     # Filtrar dados desse sensor
@@ -109,7 +111,7 @@ df_tabela = pd.DataFrame(tabela)
 
 # Remover as colunas de datas em que todos os sensores estão com "—"
 datas_validas = [data for data in datas if not (df_tabela[data] == "—").all()]
-df_tabela = df_tabela[["Tag", "Nome", "Plataforma", "Tipo medidor"] + datas_validas]
+df_tabela = df_tabela[["Tag", "Nome", "Plataforma", "Tipo medidor", "Manutenção"] + datas_validas]
 
 # Atualizar a lista de datas para o gráfico
 datas = datas_validas
@@ -169,9 +171,11 @@ with aba1:
     st.dataframe(df_styled, width='stretch', hide_index=True)
 
 with aba2:
+    df_manutencao = df_tabela[df_tabela["Manutenção"] != 'False']
+
     df_counts = pd.DataFrame({
         "Data": datas,
-        "OFF": df_tabela[datas].apply(lambda col: (col == "OFF").sum()),
+        "OFF": df_manutencao[datas].apply(lambda col: (col == "OFF").sum()),
         "ON": df_tabela[datas].apply(lambda col: (col == "ON").sum())
     }).melt("Data", var_name="Status", value_name="Quantidade")
 
