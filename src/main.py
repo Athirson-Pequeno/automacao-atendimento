@@ -98,7 +98,7 @@ if uploaded_file is not None:
         # Estatísticas extras
         st.subheader("Resumo Geral")
         col1, col2, col3 = st.columns(3)
-        col1.metric("Sensores com problemas", dados_filtrados['DescriçãoSensor'].nunique())
+        col1.metric("Sensores com problemas", len(dados_filtrados))
         col2.metric("Usuários com problemas", dados_filtrados['Email'].nunique())
         col3.metric("Maior número de dias OFF", int(dados_filtrados['Dias off.'].max()))
 

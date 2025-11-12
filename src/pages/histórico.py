@@ -58,12 +58,51 @@ query_dados = """
     FROM historico_sensores
     WHERE data_registro BETWEEN %(inicio)s AND %(fim)s
 """
+
+query_dados_grafico = """
+    SELECT 
+        COALESCE(medidores_ON.data_registro, medidores_OFF.data_registro) AS data_registro,
+        COALESCE(medidores_ON.quantidade, 0) AS off,
+        COALESCE(medidores_OFF.quantidade, 0) AS on
+    FROM (
+        SELECT data_registro, COUNT(1) AS quantidade
+        FROM historico_sensores
+        WHERE data_registro BETWEEN %(inicio)s AND %(fim)s
+          AND manutencao != 'False'
+          AND (data_registro - ultima_leitura) > 1
+        GROUP BY data_registro
+    ) medidores_ON
+    FULL JOIN (
+        SELECT data_registro, COUNT(1) AS quantidade
+        FROM historico_sensores
+        WHERE data_registro BETWEEN %(inicio)s AND %(fim)s
+          AND manutencao = 'False'
+        GROUP BY data_registro
+    ) medidores_OFF
+    ON medidores_ON.data_registro = medidores_OFF.data_registro
+    ORDER BY data_registro;
+"""
+
 parametros_periodo = {
     "inicio": data_inicio.strftime("%Y-%m-%d"),
     "fim": data_fim.strftime("%Y-%m-%d")
 }
 
 df_dados = pd.read_sql_query(query_dados, engine, params=parametros_periodo)
+df_dados_grafico = pd.read_sql_query(query_dados_grafico, engine, params=parametros_periodo)
+
+# --- Normalizar a coluna data_registro (corrigir timestamps em ms) ---
+def normalizar_data(valor):
+    if isinstance(valor, (int, float)):
+        return pd.to_datetime(valor, unit='ms')
+    try:
+        return pd.to_datetime(valor)
+    except Exception:
+        return pd.NaT
+
+df_dados_grafico['data_registro'] = df_dados_grafico['data_registro'].apply(normalizar_data)
+df_dados_grafico = df_dados_grafico.dropna(subset=['data_registro'])
+df_dados_grafico['data_registro'] = df_dados_grafico['data_registro'].dt.strftime('%Y-%m-%d')
 
 # Garantir que as datas estão ordenadas
 df_dados['data_registro'] = pd.to_datetime(df_dados['data_registro'])
@@ -171,12 +210,10 @@ with aba1:
     st.dataframe(df_styled, width='stretch', hide_index=True)
 
 with aba2:
-    df_manutencao = df_tabela[df_tabela["Manutenção"] != 'False']
-
     df_counts = pd.DataFrame({
-        "Data": datas,
-        "OFF": df_manutencao[datas].apply(lambda col: (col == "OFF").sum()),
-        "ON": df_tabela[datas].apply(lambda col: (col == "ON").sum())
+        "Data": df_dados_grafico['data_registro'],
+        "OFF": df_dados_grafico['off'],
+        "ON": df_dados_grafico['on'],
     }).melt("Data", var_name="Status", value_name="Quantidade")
 
     # --- Gráfico base (linhas + pontos) ---
@@ -201,7 +238,7 @@ with aba2:
         .mark_text(
             align="center",
             baseline="middle",
-            dy=-12,  # ajuste vertical (negativo = acima, positivo = abaixo)
+            dy=-12,
             fontSize=14,
             fontWeight="bold",
             color="black"
@@ -214,7 +251,6 @@ with aba2:
         )
     )
 
-    # --- Combina os dois ---
     chart = (base + text).properties(
         title="Status dos Equipamentos por Dia",
         width=700,
