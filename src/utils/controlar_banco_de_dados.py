@@ -79,7 +79,11 @@ def salvarTabela(arquivo):
                 INSERT INTO historico_sensores (
                     data_registro, nome, descricao_sensor, email, ultima_leitura, plataforma, tipo_medidor, status, manutencao
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (data_registro, nome, descricao_sensor) DO NOTHING
+                ON CONFLICT (data_registro, nome, descricao_sensor) DO UPDATE
+                SET 
+                ultima_leitura = EXCLUDED.ultima_leitura, 
+                status = EXCLUDED.status, 
+                manutencao = EXCLUDED.manutencao
             """, (
             row["data_registro"],
             row["nome"],

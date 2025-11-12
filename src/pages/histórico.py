@@ -62,8 +62,8 @@ query_dados = """
 query_dados_grafico = """
     SELECT 
         COALESCE(medidores_ON.data_registro, medidores_OFF.data_registro) AS data_registro,
-        COALESCE(medidores_ON.quantidade, 0) AS off,
-        COALESCE(medidores_OFF.quantidade, 0) AS on
+        COALESCE(medidores_OFF.quantidade, 0) AS off,
+        COALESCE(medidores_ON.quantidade, 0) AS on
     FROM (
         SELECT data_registro, COUNT(1) AS quantidade
         FROM historico_sensores
@@ -71,14 +71,14 @@ query_dados_grafico = """
           AND manutencao != 'False'
           AND (data_registro - ultima_leitura) > 1
         GROUP BY data_registro
-    ) medidores_ON
+    ) medidores_OFF
     FULL JOIN (
         SELECT data_registro, COUNT(1) AS quantidade
         FROM historico_sensores
         WHERE data_registro BETWEEN %(inicio)s AND %(fim)s
           AND manutencao = 'False'
         GROUP BY data_registro
-    ) medidores_OFF
+    ) medidores_ON
     ON medidores_ON.data_registro = medidores_OFF.data_registro
     ORDER BY data_registro;
 """
