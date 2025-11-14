@@ -76,7 +76,10 @@ query_dados_grafico = """
         SELECT data_registro, COUNT(1) AS quantidade
         FROM historico_sensores
         WHERE data_registro BETWEEN %(inicio)s AND %(fim)s
-          AND manutencao = 'False'
+          AND manutencao = 'False' 
+          OR (data_registro BETWEEN %(inicio)s AND %(fim)s 
+              AND manutencao != 'False'
+              AND (data_registro - ultima_leitura) < 2)
         GROUP BY data_registro
     ) medidores_ON
     ON medidores_ON.data_registro = medidores_OFF.data_registro

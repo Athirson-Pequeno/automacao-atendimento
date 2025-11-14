@@ -4,10 +4,10 @@ import pandas as pd
 import streamlit as st
 
 from utils.controlar_banco_de_dados import salvarTabela
+from utils.enviar_emails import send_email
 from utils.mensagens import gerarMensagem, gerarMensagemHTML_bonito
 from utils.requisicoes import gerarTabelas
 from utils.ui import aplicar_estilo_sidebar
-from utils.enviar_emails import send_email
 
 aplicar_estilo_sidebar()
 
@@ -70,7 +70,7 @@ if uploaded_file is not None:
         df['Manutencao'] = df['Manutencao'].astype(str).str.strip().str.upper()
         dados_filtrados = df[(df['Dias off.'] >= 2) & (df['Manutencao'] != 'FALSE')]
 
-        #Informa a quantidade de registro encontrados
+        # Informa a quantidade de registro encontrados
         st.success(f"{len(dados_filtrados)} registros encontrados com mais de 2 dias sem informações")
 
         # Configurar filtros
@@ -104,7 +104,7 @@ if uploaded_file is not None:
 
         st.divider()
 
-        #Exibe todos os medidores sem registro
+        # Exibe todos os medidores sem registro
         st.subheader("Medidores sem registros")
         st.dataframe(dados_filtrados, width='stretch')
 
@@ -144,4 +144,4 @@ if uploaded_file is not None:
     except Exception as e:
         st.error(f"Erro ao processar planilha: {e}")
 else:
-    st.info("Faça o upload do arquivo Excel para visualizar os dados.")
+    st.info("Clique em gerar tabelas para fazer a requisição dos dados.")

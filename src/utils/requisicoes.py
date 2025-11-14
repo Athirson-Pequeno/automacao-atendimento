@@ -49,8 +49,8 @@ def buscar_atrasados(url, token, nome_fonte):
         if nome_fonte == "Lyum":
             for item in sensores:
                 if "lastMeasurementTimestamp" in item and item["lastMeasurementTimestamp"]:
-                    ts = item["lastMeasurementTimestamp"] * 1000  # segundos → ms
-                    corrigido = ts - 3 * 60 * 60 * 1000  # UTC → BRT (-3h)
+                    ts = item["lastMeasurementTimestamp"] * 1000
+                    corrigido = ts - 3 * 60 * 60 * 1000
                     item["lastMeasurementTimestamp"] = corrigido
 
         # Corrige nome do usuário (LiteMe e UFCG)
