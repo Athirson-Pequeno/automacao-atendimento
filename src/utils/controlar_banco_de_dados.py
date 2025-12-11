@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import psycopg2
+from dateutil.utils import today
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 
@@ -23,12 +24,19 @@ DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
 
+# --- Conexão com o PostgreSQL ---
+conn = psycopg2.connect(
+    host=DB_HOST,
+    port=DB_PORT,
+    database=DB_NAME,
+    user=DB_USER,
+    password=DB_PASSWORD)
+
+cursor = conn.cursor()
 
 def salvarTabela(arquivo):
-    # Nome do banco dentro da pasta src/database
     df = pd.read_excel(arquivo)
 
-    # Converter a coluna de data para o formato padrão SQLite
     df['DataAtual'] = pd.to_datetime(df['DataAtual'], dayfirst=True).dt.strftime('%Y-%m-%d')
     df['DataÚltimaLeitura'] = pd.to_datetime(df['DataÚltimaLeitura'], dayfirst=True).dt.strftime('%Y-%m-%d')
 
@@ -43,16 +51,6 @@ def salvarTabela(arquivo):
         "TipoMedidor": "tipo_medidor",
         "Manutencao": "manutencao"
     }, inplace=True)
-
-    # --- Conexão com o PostgreSQL ---
-    conn = psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD
-    )
-    cursor = conn.cursor()
 
     # --- Criar tabela se não existir ---
     cursor.execute("""
@@ -109,3 +107,78 @@ def salvarTabela(arquivo):
     df_mensal.to_excel(nome_relatorio, index=False)
 
     conn.close()
+
+
+def criarTabelasAcesso():
+
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            nome TEXT NOT NULL,
+            email TEXT NOT NULL,
+            cliente_ativo BOOLEAN,
+            plataforma TEXT,
+            UNIQUE(email, plataforma)
+        );
+        """)
+
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS historico_acesso (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+            data_registro DATE NOT NULL,
+            acessos INTEGER,
+            mes TEXT,
+            UNIQUE(user_id, mes)
+        );
+        """)
+
+    conn.commit()
+
+def salvarUsuarios(usuarios):
+    criarTabelasAcesso()
+
+    for usuario in usuarios:
+        cursor.execute("""
+                        INSERT INTO usuarios (
+                            nome, email, cliente_ativo, plataforma
+                        ) VALUES (%s, %s, %s, %s)
+                        ON CONFLICT DO NOTHING
+                    """, (
+            usuario["nome"],
+            usuario["email"],
+            usuario["cliente_ativo"],
+            usuario["plataforma"]
+        ))
+
+    conn.commit()
+
+def salvarMetricas(metricas):
+    criarTabelasAcesso()
+
+    for metrica in metricas:
+        data_registro = today().strftime("%Y-%m-%d")
+        cursor.execute("SELECT id FROM usuarios WHERE email = %s", (metrica["email"],))
+        result = cursor.fetchone()
+
+        if not result:
+            print(f"Usuário não encontrado: {metrica['email']}")
+            continue
+
+        user_id = result[0]
+
+        for acesso in metrica.get("acessos_por_mes", []):
+            cursor.execute("""
+                        INSERT INTO historico_acesso (
+                            user_id, data_registro, acessos, mes
+                        ) VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (user_id, mes) DO UPDATE
+                        SET acessos = EXCLUDED.acessos
+                    """, (
+                user_id,
+                data_registro,
+                acesso["access"],
+                acesso["month"]
+            ))
+
+    conn.commit()

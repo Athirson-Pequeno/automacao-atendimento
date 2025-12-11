@@ -60,7 +60,7 @@ query_dados = """
 """
 
 query_dados_grafico = """
-    SELECT 
+        SELECT 
         COALESCE(medidores_ON.data_registro, medidores_OFF.data_registro) AS data_registro,
         COALESCE(medidores_OFF.quantidade, 0) AS off,
         COALESCE(medidores_ON.quantidade, 0) AS on
@@ -68,18 +68,28 @@ query_dados_grafico = """
         SELECT data_registro, COUNT(1) AS quantidade
         FROM historico_sensores
         WHERE data_registro BETWEEN %(inicio)s AND %(fim)s
-          AND manutencao != 'False'
+          AND LOWER(manutencao) != LOWER('false')
           AND (data_registro - ultima_leitura) > 1
+          AND LOWER(tipo_medidor) = LOWER('ENERGIA')
+          AND LOWER(plataforma) != LOWER('LiteMe - UFCG')
         GROUP BY data_registro
     ) medidores_OFF
     FULL JOIN (
         SELECT data_registro, COUNT(1) AS quantidade
         FROM historico_sensores
         WHERE data_registro BETWEEN %(inicio)s AND %(fim)s
-          AND manutencao = 'False' 
-          OR (data_registro BETWEEN %(inicio)s AND %(fim)s 
-              AND manutencao != 'False'
-              AND (data_registro - ultima_leitura) < 2)
+          AND (
+                (LOWER(manutencao) = LOWER('false') 
+                 AND LOWER(tipo_medidor) = LOWER('ENERGIA')
+                 AND LOWER(plataforma) != LOWER('LiteMe - UFCG'))
+    
+                OR
+    
+                (LOWER(manutencao) != LOWER('false')
+                 AND LOWER(tipo_medidor) = LOWER('ENERGIA')
+                 AND LOWER(plataforma) != LOWER('LiteMe - UFCG')
+                 AND (data_registro - ultima_leitura) < 2)
+              )
         GROUP BY data_registro
     ) medidores_ON
     ON medidores_ON.data_registro = medidores_OFF.data_registro
@@ -94,6 +104,7 @@ parametros_periodo = {
 df_dados = pd.read_sql_query(query_dados, engine, params=parametros_periodo)
 df_dados_grafico = pd.read_sql_query(query_dados_grafico, engine, params=parametros_periodo)
 
+
 # --- Normalizar a coluna data_registro (corrigir timestamps em ms) ---
 def normalizar_data(valor):
     if isinstance(valor, (int, float)):
@@ -102,6 +113,7 @@ def normalizar_data(valor):
         return pd.to_datetime(valor)
     except Exception:
         return pd.NaT
+
 
 df_dados_grafico['data_registro'] = df_dados_grafico['data_registro'].apply(normalizar_data)
 df_dados_grafico = df_dados_grafico.dropna(subset=['data_registro'])

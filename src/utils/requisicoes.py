@@ -6,6 +6,8 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
+from pages.consultas import plataforma
+
 # --- Configurações ---
 DIAS_LIMITES = 0
 LIMITE_ATRASO_MS = DIAS_LIMITES * 24 * 60 * 60 * 1000  # 0 dias
@@ -28,7 +30,8 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Lê a variável do .env e converte JSON → lista Python
 LISTA_REQUISICOES = json.loads(os.getenv("LISTA_REQUISICOES"))
-
+REQUISICAO_TODOS_MEDIDORES = os.getenv("REQUISICAO_TODOS_MEDIDORES")
+TOKEN_LITEME = os.getenv("TOKEN_LITEME")
 
 # --- Função para buscar sensores atrasados ---
 def buscar_atrasados(url, token, nome_fonte):
@@ -132,3 +135,88 @@ def gerarTabelas():
     df.to_excel(local_tabela, index=False, engine='openpyxl')
 
     return True
+
+
+def buscarUsuarios():
+    response = requests.get(REQUISICAO_TODOS_MEDIDORES, headers={"Access-Token": TOKEN_LITEME})
+    data = response.json()
+
+    if "data" not in data:
+        return []
+
+    medidores = data["data"]
+
+    usuarios = []
+    vistos = set()
+
+    for medidor in medidores:
+        user = medidor.get("user", {})
+
+        nome = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip()
+        email = user.get("email", "")
+        plataforma = "LiteMe"
+        cliente_ativo = True
+
+        chave = (email, plataforma)
+
+        if chave in vistos:
+            continue
+
+        vistos.add(chave)
+
+        usuarios.append({
+            "nome": nome,
+            "email": email,
+            "plataforma": plataforma,
+            "cliente_ativo": cliente_ativo
+        })
+
+    return usuarios
+
+def buscarMetricas(usuarios):
+
+    url_metrica = "https://painel.liteme.com.br/service/rest/user/metrics?start=1762019991000&end=1764525591000"
+    response_metrica = requests.get(url_metrica, headers={"Access-Token": TOKEN_LITEME})
+    data = response_metrica.json()
+
+    if "data" not in data:
+        return []
+
+    metrica = data["data"]
+
+    metrics_by_email = {}
+
+    for item in metrica:
+        email = item.get("userEmail")
+
+        metricas = item.get("metrics", [])
+        lista = []
+
+        for m in metricas:
+            lista.append({
+                "month": timestampParaMes(m.get("month")),
+                "access": m.get("access")
+            })
+
+        metrics_by_email[email] = lista
+
+    return combinarUsuariosEMetricas(usuarios, metrics_by_email)
+
+def combinarUsuariosEMetricas(usuarios, metrics):
+    resultado = []
+
+    for user in usuarios:
+        email = user["email"]
+
+        acessos = metrics.get(email, [])
+
+        resultado.append({
+            **user,
+            "acessos_por_mes": acessos
+        })
+
+    return resultado
+
+def timestampParaMes(timestamp_ms):
+    data = datetime.fromtimestamp(timestamp_ms / 1000)
+    return data.date().strftime("%m/%Y")
