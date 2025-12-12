@@ -1,22 +1,17 @@
-from utils.requisicoes import buscarUsuarios, buscarMetricas
-from utils.controlar_banco_de_dados import salvarUsuarios, salvarMetricas, buscarMetricasPorMes, buscarTodasAsMetricas, \
-    buscarMetricasComUsuarios
+from datetime import datetime
 
-import os
-from datetime import datetime, timedelta
-
-import altair as alt
 import pandas as pd
 import streamlit as st
-from sqlalchemy import create_engine
 
+from utils.controlar_banco_de_dados import (
+    salvarUsuarios,
+    salvarMetricas,
+    buscarMetricasPorMes,
+    buscarMetricasComUsuarios,
+    alternarStatusUsuario
+)
+from utils.requisicoes import buscarUsuarios, buscarMetricas
 from utils.ui import aplicar_estilo_sidebar
-
-
-# usuarios = buscarUsuarios()
-# salvarUsuarios(usuarios)
-# metricas = buscarMetricas(usuarios)
-# salvarMetricas(metricas)
 
 aplicar_estilo_sidebar()
 
@@ -28,14 +23,9 @@ hoje = datetime.today()
 col1, col2 = st.sidebar.columns(2)
 with col1:
     data_inicio = st.date_input("📅 Início",
-                                value=datetime(hoje.year, hoje.month, 1),
-                                min_value=datetime(2000, 1, 1),
-                                max_value=hoje)
+                                value=datetime(hoje.year, hoje.month, 1))
 with col2:
-    data_fim = st.date_input("📅 Fim",
-                             value=hoje,
-                             min_value=datetime(2000, 1, 1),
-                             max_value=hoje)
+    data_fim = st.date_input("📅 Fim", value=hoje)
 
 dt_inicio = datetime.combine(data_inicio, datetime.min.time())
 dt_fim = datetime.combine(data_fim, datetime.min.time())
@@ -62,17 +52,45 @@ df = pd.DataFrame(dados, columns=[
     "acessos"
 ])
 
+filtro_status = st.sidebar.radio(
+    "Filtrar usuários:",
+    ["Todos", "Ativos", "Inativos"],
+    horizontal=False
+)
+
+if filtro_status == "Ativos":
+    df = df[df["cliente_ativo"] == True]
+elif filtro_status == "Inativos":
+    df = df[df["cliente_ativo"] == False]
+
 df_pivot = df.pivot_table(
-    index=["nome", "email", "cliente_ativo"],
+    index=["user_id", "nome", "email", "cliente_ativo"],
     columns="mes",
     values="acessos",
     fill_value=0,
     aggfunc="sum"
+).reset_index()
+
+df_pivot["_original_status"] = df_pivot["cliente_ativo"]
+
+colunas_visiveis = [c for c in df_pivot.columns if c != "_original_status" and c != "user_id"]
+
+edited_df = st.data_editor(
+    df_pivot,
+    use_container_width=True,
+    hide_index=True,
+    column_order=colunas_visiveis,
+    column_config={
+        "cliente_ativo": st.column_config.CheckboxColumn(
+            label="Ativo?",
+            help="Ativa ou inativa o cliente"
+        )
+    },
+    disabled=["user_id", "nome", "email", "_original_status"]
 )
 
-df_pivot = df_pivot.sort_index(axis=1, key=lambda x: pd.to_datetime(x, format="%m/%Y"))
-
-df_pivot = df_pivot.reset_index()
-
-st.subheader("📊 Relatório consolidado de acessos por usuário e mês")
-st.dataframe(df_pivot, use_container_width=True)
+for _, row in edited_df.iterrows():
+    if row["cliente_ativo"] != row["_original_status"]:
+        alternarStatusUsuario(int(row["user_id"]), bool(row["cliente_ativo"]))
+        st.success(f"Status de {row['nome']} atualizado!")
+        st.rerun()
