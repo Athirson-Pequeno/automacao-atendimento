@@ -173,9 +173,9 @@ def buscarUsuarios():
 
     return usuarios
 
-def buscarMetricas(usuarios):
+def buscarMetricas(usuarios, inicio, fim):
 
-    url_metrica = "https://painel.liteme.com.br/service/rest/user/metrics?start=1762019991000&end=1764525591000"
+    url_metrica = f"https://painel.liteme.com.br/service/rest/user/metrics?start={inicio}&end={fim}"
     response_metrica = requests.get(url_metrica, headers={"Access-Token": TOKEN_LITEME})
     data = response_metrica.json()
 

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import pandas as pd
 import psycopg2
@@ -24,17 +25,20 @@ DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
 
-# --- Conexão com o PostgreSQL ---
-conn = psycopg2.connect(
-    host=DB_HOST,
-    port=DB_PORT,
-    database=DB_NAME,
-    user=DB_USER,
-    password=DB_PASSWORD)
 
-cursor = conn.cursor()
+def get_connection():
+    return psycopg2.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD
+    )
+
 
 def salvarTabela(arquivo):
+    conn = get_connection()
+    cursor = conn.cursor()
     df = pd.read_excel(arquivo)
 
     df['DataAtual'] = pd.to_datetime(df['DataAtual'], dayfirst=True).dt.strftime('%Y-%m-%d')
@@ -106,10 +110,14 @@ def salvarTabela(arquivo):
     nome_relatorio = os.path.join(RELATORIOS_DIR, f"historico_{ano}_{mes}.xlsx")
     df_mensal.to_excel(nome_relatorio, index=False)
 
+    conn.commit()
+    cursor.close()
     conn.close()
 
 
 def criarTabelasAcesso():
+    conn = get_connection()
+    cursor = conn.cursor()
 
     cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
@@ -134,8 +142,13 @@ def criarTabelasAcesso():
         """)
 
     conn.commit()
+    cursor.close()
+    conn.close()
+
 
 def salvarUsuarios(usuarios):
+    conn = get_connection()
+    cursor = conn.cursor()
     criarTabelasAcesso()
 
     for usuario in usuarios:
@@ -152,8 +165,13 @@ def salvarUsuarios(usuarios):
         ))
 
     conn.commit()
+    cursor.close()
+    conn.close()
+
 
 def salvarMetricas(metricas):
+    conn = get_connection()
+    cursor = conn.cursor()
     criarTabelasAcesso()
 
     for metrica in metricas:
@@ -182,3 +200,68 @@ def salvarMetricas(metricas):
             ))
 
     conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def buscarMetricasPorMes(timestamp_data_fim):
+    conn = get_connection()
+    cursor = conn.cursor()
+    criarTabelasAcesso()
+
+    mes = timestampParaMes(timestamp_data_fim)
+
+    cursor.execute("SELECT * FROM historico_acesso WHERE mes = %s", (str(mes),))
+    result = cursor.fetchall()
+    cursor.close()
+    return result
+
+def buscarTodasAsMetricas():
+    conn = get_connection()
+    cursor = conn.cursor()
+    criarTabelasAcesso()
+
+    cursor.execute("SELECT * FROM historico_acesso")
+    result = cursor.fetchall()
+    cursor.close()
+    return result
+
+
+def buscarMetricasComUsuarios():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT 
+            u.id,
+            u.nome,
+            u.email,
+            u.cliente_ativo,
+            ha.mes,
+            ha.acessos
+        FROM historico_acesso ha
+        INNER JOIN usuarios u ON u.id = ha.user_id
+        ORDER BY u.nome ASC, ha.mes ASC
+    """)
+
+    result = cursor.fetchall()
+    cursor.close()
+    return result
+
+def alternarStatusUsuario(user_id, status):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE usuarios
+        SET cliente_ativo = %s
+        WHERE id = %s
+    """, (status, user_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def timestampParaMes(timestamp_ms):
+    data = datetime.fromtimestamp(timestamp_ms / 1000)
+    return data.date().strftime("%m/%Y")

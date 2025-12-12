@@ -40,7 +40,7 @@ elif "uploaded_file" in st.session_state:
 if st.button("🔄 Gerar Tabelas de Requisições"):
     with st.spinner("Gerando tabelas e atualizando dados..."):
         try:
-            if gerarTabelas():  # <- chama sua função
+            if gerarTabelas():
                 st.success("Tabelas geradas e salvas com sucesso!")
                 uploaded_file = os.path.join(TABELAS_DIR, 'sensores_atrasados.xlsx')
                 st.session_state["uploaded_file"] = uploaded_file
