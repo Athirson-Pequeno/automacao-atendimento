@@ -68,7 +68,7 @@ df = pd.read_sql_query(query, engine, params=params)
 # Exibir resultados
 if not df.empty:
     st.success(f"{len(df)} registros encontrados")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, width='stretch')
 
     csv_data = df.to_csv(index=False).encode("utf-8")
     st.download_button("⬇️ Baixar como CSV", csv_data, "consultas_sensores.csv", "text/csv")

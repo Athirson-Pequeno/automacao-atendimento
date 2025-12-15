@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import streamlit as st
 
-from scripts.popular_acessos_mes_a_mes import popular_ano_completo
 from utils.controlar_banco_de_dados import salvarTabela
 from utils.enviar_emails import send_email
 from utils.mensagens import gerarMensagem, gerarMensagemHTML_bonito

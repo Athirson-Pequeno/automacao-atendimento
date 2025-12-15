@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime
 
 import pandas as pd
@@ -26,6 +27,42 @@ with col1:
 with col2:
     data_fim = st.date_input("📅 Fim", value=hoje)
 
+
+hoje = datetime.today()
+
+st.sidebar.header("Início")
+
+anos = list(range(2020, hoje.year + 1))
+meses = list(range(1, 13))
+
+col1Ini, col2Ini = st.sidebar.columns(2)
+
+with col1Ini:
+    mesIni = st.selectbox(
+        "Mês ini.",
+        meses,
+        format_func=lambda m: calendar.month_name[m],
+        index=meses.index(hoje.month - 1)
+    )
+with col2Ini:
+    anoIni = st.selectbox("Ano ini.", anos, index=anos.index(hoje.year))
+
+st.sidebar.header("Fim")
+
+col1Fim, col2Fim = st.sidebar.columns(2)
+
+with col1Fim:
+    mesFim = st.selectbox(
+        "Mês fim",
+        meses,
+        format_func=lambda m: calendar.month_name[m],
+        index=meses.index(hoje.month)
+    )
+
+with col2Fim:
+    anoFim = st.selectbox("Ano fim", anos, index=anos.index(hoje.year))
+
+
 dt_inicio = datetime.combine(data_inicio, datetime.min.time())
 dt_fim = datetime.combine(data_fim, datetime.min.time())
 
@@ -40,7 +77,11 @@ if not metricas_mes_atual:
     metricas = buscarMetricas(usuarios, ts_inicio_ms, ts_fim_ms)
     salvarMetricas(metricas)
 
-dados = buscarMetricasComUsuarios()
+
+mes_ano_inicio = f"{mesIni:02d}/{anoIni}"
+mes_ano_fim = f"{mesFim:02d}/{anoFim}"
+
+dados = buscarMetricasComUsuarios(mes_ano_inicio, mes_ano_fim)
 
 df = pd.DataFrame(dados, columns=[
     "user_id",
@@ -76,7 +117,7 @@ colunas_visiveis = [c for c in df_pivot.columns if c != "_original_status" and c
 
 edited_df = st.data_editor(
     df_pivot,
-    use_container_width=True,
+    width='stretch',
     hide_index=True,
     column_order=colunas_visiveis,
     column_config={

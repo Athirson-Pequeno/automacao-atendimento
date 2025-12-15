@@ -227,7 +227,7 @@ def buscarTodasAsMetricas():
     return result
 
 
-def buscarMetricasComUsuarios():
+def buscarMetricasComUsuarios(inicio, fim):
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -241,8 +241,9 @@ def buscarMetricasComUsuarios():
             ha.acessos
         FROM historico_acesso ha
         INNER JOIN usuarios u ON u.id = ha.user_id
+        WHERE ha.mes BETWEEN %s AND %s
         ORDER BY u.nome ASC, ha.mes ASC
-    """)
+    """, (inicio, fim))
 
     result = cursor.fetchall()
     cursor.close()
