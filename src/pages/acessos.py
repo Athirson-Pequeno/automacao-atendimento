@@ -22,8 +22,7 @@ hoje = datetime.today()
 
 col1, col2 = st.sidebar.columns(2)
 with col1:
-    data_inicio = st.date_input("📅 Início",
-                                value=datetime(hoje.year, hoje.month, 1))
+    data_inicio = st.date_input("📅 Início", value=datetime(hoje.year, hoje.month, 1))
 with col2:
     data_fim = st.date_input("📅 Fim", value=hoje)
 

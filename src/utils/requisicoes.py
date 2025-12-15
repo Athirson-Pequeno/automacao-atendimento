@@ -6,8 +6,6 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
-from pages.consultas import plataforma
-
 # --- Configurações ---
 DIAS_LIMITES = 0
 LIMITE_ATRASO_MS = DIAS_LIMITES * 24 * 60 * 60 * 1000  # 0 dias
@@ -32,6 +30,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 LISTA_REQUISICOES = json.loads(os.getenv("LISTA_REQUISICOES"))
 REQUISICAO_TODOS_MEDIDORES = os.getenv("REQUISICAO_TODOS_MEDIDORES")
 TOKEN_LITEME = os.getenv("TOKEN_LITEME")
+
 
 # --- Função para buscar sensores atrasados ---
 def buscar_atrasados(url, token, nome_fonte):
@@ -107,7 +106,6 @@ def gerarTabelas():
         tipo_medidor = item.get("TipoMedidor")
         manutencao = str(sensor.get("maintenance", "indeterminado"))
 
-
         if ultima_leitura:
             data_leitura = datetime.fromtimestamp(ultima_leitura / 1000)
             dias_off = (datetime.now().date() - data_leitura.date()).days
@@ -173,8 +171,8 @@ def buscarUsuarios():
 
     return usuarios
 
-def buscarMetricas(usuarios, inicio, fim):
 
+def buscarMetricas(usuarios, inicio, fim):
     url_metrica = f"https://painel.liteme.com.br/service/rest/user/metrics?start={inicio}&end={fim}"
     response_metrica = requests.get(url_metrica, headers={"Access-Token": TOKEN_LITEME})
     data = response_metrica.json()
@@ -202,6 +200,7 @@ def buscarMetricas(usuarios, inicio, fim):
 
     return combinarUsuariosEMetricas(usuarios, metrics_by_email)
 
+
 def combinarUsuariosEMetricas(usuarios, metrics):
     resultado = []
 
@@ -216,6 +215,7 @@ def combinarUsuariosEMetricas(usuarios, metrics):
         })
 
     return resultado
+
 
 def timestampParaMes(timestamp_ms):
     data = datetime.fromtimestamp(timestamp_ms / 1000)
