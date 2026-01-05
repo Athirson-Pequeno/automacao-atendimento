@@ -203,7 +203,7 @@ colunas_visiveis = [
 
 edited_df = st.data_editor(
     df_pivot,
-    use_container_width=True,
+    width='stretch',
     hide_index=True,
     column_order=colunas_visiveis,
     column_config={
