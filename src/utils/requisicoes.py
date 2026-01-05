@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 # --- Configurações ---
 DIAS_LIMITES = 0
-LIMITE_ATRASO_MS = DIAS_LIMITES * 24 * 60 * 60 * 1000  # 0 dias
+LIMITE_ATRASO_MS = DIAS_LIMITES * 24 * 60 * 60 * 1000
 AGORA_MS = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
 
 # Caminho absoluto até a raiz do projeto
@@ -33,8 +33,11 @@ TOKEN_LITEME = os.getenv("TOKEN_LITEME")
 
 
 # --- Função para buscar sensores atrasados ---
-def buscar_atrasados(url, token, nome_fonte):
+def buscar_atrasados(url, nome_fonte, login):
     try:
+        access_token = requests.post(login)
+        token = access_token.json()["token"]
+
         response = requests.get(url, headers={"Access-Token": token})
         if response.status_code != 200:
             return []
@@ -89,7 +92,7 @@ def gerarTabelas():
     # --- Executa todas as requisições ---
     todos = []
     for req in LISTA_REQUISICOES:
-        todos.extend(buscar_atrasados(req["url"], req["token"], req["fonte"]))
+        todos.extend(buscar_atrasados(req["url"], req["fonte"], req["login"]))
 
     print(f"\nTotal geral de sensores atrasados: {len(todos)}")
 
