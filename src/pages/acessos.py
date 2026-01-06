@@ -133,7 +133,7 @@ with col2Fim:
 
 
 # =========================
-# CARGA INICIAL (CASO NÃO EXISTA)
+# CARGA INICIAL
 # =========================
 metricas_mes_atual = buscarMetricasPorMes(ts_fim_ms)
 
@@ -151,9 +151,6 @@ if not metricas_mes_atual:
 mes_ano_inicio = f"{mesIni:02d}/{anoIni}"
 mes_ano_fim = f"{mesFim:02d}/{anoFim}"
 
-print(mes_ano_fim)
-print(mes_ano_inicio)
-
 dados = buscarMetricasComUsuarios(
     mes_ano_inicio,
     mes_ano_fim
@@ -170,6 +167,8 @@ df = pd.DataFrame(
         "acessos"
     ]
 )
+
+df["mes_dt"] = pd.to_datetime(df["mes"], format="%m/%Y")
 
 
 # =========================
@@ -189,13 +188,19 @@ elif filtro_status == "Inativos":
 # =========================
 # TABELA
 # =========================
+
 df_pivot = df.pivot_table(
     index=["user_id", "nome", "email", "cliente_ativo"],
-    columns="mes",
+    columns="mes_dt",
     values="acessos",
     aggfunc="sum",
     fill_value=0
 ).reset_index()
+
+df_pivot.columns = [
+    c.strftime("%m/%Y") if isinstance(c, pd.Timestamp) else c
+    for c in df_pivot.columns
+]
 
 df_pivot["_original_status"] = df_pivot["cliente_ativo"]
 

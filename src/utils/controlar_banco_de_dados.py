@@ -242,7 +242,7 @@ def buscarMetricasComUsuarios(inicio, fim):
         FROM historico_acesso ha
         INNER JOIN usuarios u ON u.id = ha.user_id
         WHERE to_date(ha.mes, 'MM/YYYY') BETWEEN to_date(%s, 'MM/YYYY') AND to_date(%s, 'MM/YYYY')
-        ORDER BY u.nome ASC, ha.mes ASC
+        ORDER BY u.nome ASC, to_date(ha.mes, 'MM/YYYY')
     """, (inicio, fim))
 
     result = cursor.fetchall()
