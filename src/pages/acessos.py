@@ -151,6 +151,9 @@ if not metricas_mes_atual:
 mes_ano_inicio = f"{mesIni:02d}/{anoIni}"
 mes_ano_fim = f"{mesFim:02d}/{anoFim}"
 
+print(mes_ano_fim)
+print(mes_ano_inicio)
+
 dados = buscarMetricasComUsuarios(
     mes_ano_inicio,
     mes_ano_fim
